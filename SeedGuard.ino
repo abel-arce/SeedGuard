@@ -14,7 +14,7 @@ unsigned int address = 1;
 uint8_t input_pin[] = {0,0,0,0,0};
 uint8_t input_EEPROM[] = {0,0,0,0,0};
 
-uint8_t Display_Slots[] = {0,16,24,32,40,48,56,64};
+uint8_t Display_Slots[] = {0,8,16,24,32,40,48,56};
 
 void setup() {
   // put your setup code here, to run once:
@@ -31,18 +31,29 @@ void setup() {
   
   Wire.begin();  
   //eepromByteWrite(0x00,0xAA);    //writing 0x00 address key Value 0xAB = chip Used!! 
-  LockScreen();
+  //LockScreen();
   DrawBounds();
+  ShowMenu();
+}
+
+void ShowMenu(){
+    ssd1306_printFixed(36, Display_Slots[0], "SeedGuard", STYLE_BOLD);
+    ssd1306_printFixed(10, Display_Slots[2], "Slot 1", STYLE_NORMAL);
+    ssd1306_printFixed(10, Display_Slots[3], "Slot 2", STYLE_NORMAL);
+    ssd1306_printFixed(10, Display_Slots[4], "Slot 3", STYLE_NORMAL);
+    ssd1306_printFixed(10, Display_Slots[5], "Slot 4", STYLE_NORMAL);
+    ssd1306_printFixed(10, Display_Slots[6], "Slot 5", STYLE_NORMAL);
 }
 
 void DrawBounds(){
+    uint8_t slot_under_title = 10; 
     //Horizontal Bounds
-    ssd1306_drawLine(3,Display_Slots[1], ssd1306_displayWidth() -3, Display_Slots[1]);
+    ssd1306_drawLine(3,slot_under_title, ssd1306_displayWidth() -3, slot_under_title);
     ssd1306_drawLine(3,ssd1306_displayHeight() - 3, ssd1306_displayWidth() -3, ssd1306_displayHeight() -3);
 
     //Vertical Bounds
-    ssd1306_drawLine(3,Display_Slots[1], 3, ssd1306_displayHeight() -3);
-    ssd1306_drawLine(ssd1306_displayWidth() - 3,Display_Slots[1], ssd1306_displayWidth() - 3, ssd1306_displayHeight() - 3);
+    ssd1306_drawLine(3,slot_under_title, 3, ssd1306_displayHeight() -3);
+    ssd1306_drawLine(ssd1306_displayWidth() - 3,slot_under_title, ssd1306_displayWidth() - 3, ssd1306_displayHeight() - 3);
 }
 
 void LockScreen(){
