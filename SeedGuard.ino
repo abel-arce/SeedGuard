@@ -1,15 +1,8 @@
- #include <LiquidCrystal.h>
- #include <Wire.h>
+#include "ssd1306.h"
+#include "nano_gfx.h"
+#include <Wire.h>
 
- #define I2C_ADDRESS 0x50
- //***** LCD Pin Variables *****
- uint8_t RS_LCD_pin=2;
- uint8_t E_LCD_pin=3;
- //*** Data Bus *****
- uint8_t D4_LCD_pin=4;
- uint8_t D5_LCD_pin=5;
- uint8_t D6_LCD_pin=6;
- uint8_t D7_LCD_pin=7;
+#define I2C_ADDRESS 0x50
 //*****************************
 uint8_t state = 0;
 uint8_t displayed = 0;
@@ -21,41 +14,43 @@ unsigned int address = 1;
 uint8_t input_pin[] = {0,0,0,0,0};
 uint8_t input_EEPROM[] = {0,0,0,0,0};
 
-LiquidCrystal lcd(RS_LCD_pin, E_LCD_pin, D4_LCD_pin, D5_LCD_pin, D6_LCD_pin, D7_LCD_pin);
+uint8_t Display_Slots[] = {0,16,24,32,40,48,56,64};
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  ///Serial.println("LCD Custom Controller!");
-  lcd.begin(16, 2);
-  lcd.home();
-
+  //Set Up Display
+  ssd1306_setFixedFont(ssd1306xled_font6x8);
+  ssd1306_128x64_i2c_init();
+  ssd1306_clearScreen();
+  //
   pinMode(A0, INPUT_PULLUP);
   pinMode(A1, INPUT_PULLUP);
   pinMode(A2, INPUT_PULLUP);
   pinMode(A3, INPUT_PULLUP);
   
-  Wire.begin();
-  //Pin setted!
-  byte byteVal_1 = 2;
-  byte byteVal_2 = 0;
-  byte byteVal_3 = 2;
-  byte byteVal_4 = 3;
-  byte byteVal_5 = 0;
-  
+  Wire.begin();  
   //eepromByteWrite(0x00,0xAA);    //writing 0x00 address key Value 0xAB = chip Used!! 
-  
+  LockScreen();
+}
+
+void LockScreen(){
+      //ssd1306_drawLine(0,Display_Slots[2], ssd1306_displayWidth() -1, Display_Slots[2]);
+      ssd1306_printFixed(46, Display_Slots[2], "Locked", STYLE_BOLD);
+      ssd1306_printFixed(32, Display_Slots[3], "Insert PIN", STYLE_NORMAL);
+
+      ssd1306_printFixed(46, Display_Slots[5], "*", STYLE_NORMAL);
+      ssd1306_printFixed(54, Display_Slots[5], "*", STYLE_NORMAL);
+      ssd1306_printFixed(62, Display_Slots[5], "*", STYLE_NORMAL);
+      ssd1306_printFixed(70, Display_Slots[5], "*", STYLE_NORMAL);
+      ssd1306_printFixed(78, Display_Slots[5], "*", STYLE_NORMAL);
 }
 
 void loop() {
+  
+
   // Initial State
   if(!state){
-    lcd.print("  <|SeedGuard|>");
-    delay(3000);  
-    lcd.setCursor(0, 1);
-    lcd.print("Checking chip...");
-    delay(500);
-    
     header = 0xFF;
     if(!ChipError())
       header = eepromByteRead(0x00);        // Reading header check value
@@ -72,12 +67,6 @@ void loop() {
   //NO PIN SET on CHIP
   if(state == 1){
     if(!displayed){
-      systemOut(0x00);
-      lcd.print("Set new PIN");
-      systemOut(0x01);
-      lcd.print("Insert Pin:");
-      lcd.setCursor(11, 1);
-      lcd.blink();
       displayed = 1;
     }
     ReadInput();
@@ -90,10 +79,6 @@ void loop() {
         eepromByteWrite(0x05,input_pin[4]);
         eepromByteWrite(0x00,0xAB); // Set Chip as Used
         //
-        systemOut(0x01);
-        systemOut(0x00);
-        lcd.print("PIN set OK!");
-        delay(3000);
         state = 2;
         Digits_in_display = 0;
         displayed = 0;
@@ -103,25 +88,14 @@ void loop() {
   //CHIP ALREADY USED
   if(state == 2){
     if(!displayed){
-      systemOut(0x00);
-      lcd.print("  <|SeedGuard|>");
-      systemOut(0x01);
-      lcd.print("Insert PIN:");
-      lcd.setCursor(11, 1);
-      lcd.blink();
       displayed = 1;
     }
     ReadInput();
     if(Digits_in_display >= 5){
       if(pin_ok()){
-        systemOut(0x01);
-        lcd.print("  PIN OK!!");
-        delay(3000);
         state = 3;
       }else{
-        systemOut(0x01);
-        lcd.print("  WRONG PIN!!");
-        delay(3000);
+        //Show Slots
       }
       Digits_in_display = 0;
       displayed = 0;
@@ -131,15 +105,10 @@ void loop() {
   //Error state
   if(state == 3){
     if(!displayed){
-      systemOut(0x01);
-      systemOut(0x00);
-      lcd.print("  Select Slot   ");
-      systemOut(0x01);
-      lcd.blink();
       displayed = 1;
     }
 
-    //Debug Mode
+    //Debug Mode Reset State
     if(!digitalRead(A0) && !digitalRead(A1)){
       state = 1;
       displayed = 0;
@@ -151,10 +120,6 @@ void loop() {
   //Checking chip status
   if(!CheckChip(0x00)){
     if(displayed < 2){
-      systemOut(0x00);
-      lcd.print("Checking chip...");
-      systemOut(0x01);
-      lcd.print("....CHIP OFF....");
       displayed = 2;
     }
     Digits_in_display = 0;
@@ -182,26 +147,18 @@ byte pin_ok(){
 void ReadInput(){
   if(Digits_in_display < 5){
     if(!digitalRead(A0)){
-      lcd.print("0");
-      delay(250);
       input_pin[Digits_in_display] = 0x00;
       Digits_in_display++;
     }
     if(!digitalRead(A1)){
-      lcd.print("1");
-      delay(250);
       input_pin[Digits_in_display] = 0x01;
       Digits_in_display++;
     }
     if(!digitalRead(A2)){
-      lcd.print("2");
-      delay(250);
       input_pin[Digits_in_display] = 0x02;
       Digits_in_display++;
     }
     if(!digitalRead(A3)){
-      lcd.print("3");
-      delay(250);
       input_pin[Digits_in_display] = 0x03;
       Digits_in_display++;
     }
@@ -212,20 +169,13 @@ byte CheckChip(byte print){
   if(!ChipError()){
       //Serial.println("EEPROM Connected!");
       if(print){
-        systemOut(1);
-        lcd.print("Chip OK!");
-        delay(500);
-        systemOut(1);
-        lcd.print("Insert Pin:");
-        lcd.setCursor(11, 1);
-        lcd.blink();
+        //Chip OK!
       }
       return 1;
     }else{
       //Serial.println("EEPROM ERROR");
       if(print){
-        systemOut(1);
-        lcd.print(" Error on Chip! ");
+        //Error on CHIP
       }
       return 0;
     }
@@ -235,7 +185,7 @@ byte ChipError(){
   Wire.beginTransmission(I2C_ADDRESS);
   return Wire.endTransmission();
 }
-
+/*
 void systemOut(uint8_t i){
   if(i){
       lcd.setCursor(0, 1);
@@ -249,7 +199,7 @@ void systemOut(uint8_t i){
   }else{
       lcd.setCursor(0, 0);
   }
-}
+}*/
 
 void eepromByteWrite(unsigned int addr, byte byteToWrite){
   Wire.beginTransmission(I2C_ADDRESS);
