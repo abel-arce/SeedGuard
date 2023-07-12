@@ -32,6 +32,17 @@ void setup() {
   Wire.begin();  
   //eepromByteWrite(0x00,0xAA);    //writing 0x00 address key Value 0xAB = chip Used!! 
   LockScreen();
+  DrawBounds();
+}
+
+void DrawBounds(){
+    //Horizontal Bounds
+    ssd1306_drawLine(3,Display_Slots[1], ssd1306_displayWidth() -3, Display_Slots[1]);
+    ssd1306_drawLine(3,ssd1306_displayHeight() - 3, ssd1306_displayWidth() -3, ssd1306_displayHeight() -3);
+
+    //Vertical Bounds
+    ssd1306_drawLine(3,Display_Slots[1], 3, ssd1306_displayHeight() -3);
+    ssd1306_drawLine(ssd1306_displayWidth() - 3,Display_Slots[1], ssd1306_displayWidth() - 3, ssd1306_displayHeight() - 3);
 }
 
 void LockScreen(){
@@ -45,6 +56,8 @@ void LockScreen(){
       ssd1306_printFixed(70, Display_Slots[5], "*", STYLE_NORMAL);
       ssd1306_printFixed(78, Display_Slots[5], "*", STYLE_NORMAL);
 }
+
+
 
 void loop() {
   
