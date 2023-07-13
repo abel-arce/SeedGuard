@@ -34,6 +34,22 @@ void setup() {
   //LockScreen();
   DrawBounds();
   ShowMenu();
+  delay(3000);
+  ClearSlot(3);
+  delay(3000);
+  ClearMenu();
+}
+
+void ClearSlot(uint8_t i){
+    ssd1306_printFixed(8, Display_Slots[i], "                  ", STYLE_BOLD);
+}
+
+void ClearMenu(){
+    ssd1306_printFixed(8, Display_Slots[2], "                  ", STYLE_BOLD);
+    ssd1306_printFixed(8, Display_Slots[3], "                  ", STYLE_BOLD);
+    ssd1306_printFixed(8, Display_Slots[4], "                  ", STYLE_BOLD);
+    ssd1306_printFixed(8, Display_Slots[5], "                  ", STYLE_BOLD);
+    ssd1306_printFixed(8, Display_Slots[6], "                  ", STYLE_BOLD);
 }
 
 void ShowMenu(){
