@@ -32,16 +32,13 @@ void setup() {
   Wire.begin();  
   //eepromByteWrite(0x00,0xAA);    //writing 0x00 address key Value 0xAB = chip Used!! 
   //LockScreen();
-  DrawBounds();
-  ShowMenu();
-  delay(3000);
-  ClearSlot(3);
-  delay(3000);
-  ClearMenu();
+  //DrawBounds();
+  //ShowMenu();
+  //ClearMenu();
 }
 
 void ClearSlot(uint8_t i){
-    ssd1306_printFixed(8, Display_Slots[i], "                  ", STYLE_BOLD);
+    ssd1306_printFixed(8, Display_Slots[i],"                    ", STYLE_BOLD);
 }
 
 void ClearMenu(){
@@ -61,6 +58,17 @@ void ShowMenu(){
     ssd1306_printFixed(10, Display_Slots[6], "Slot 5", STYLE_NORMAL);
 }
 
+void ShowChipError(){
+    ssd1306_clearScreen();
+    ssd1306_printFixed(28, Display_Slots[3], "NO CHIP FOUND!", STYLE_BOLD);
+    ssd1306_printFixed(24, Display_Slots[7], "Checking chip...", STYLE_NORMAL);
+}
+
+void ShowCheckChip(){
+  ClearSlot(7);
+  ssd1306_printFixed(16, Display_Slots[7], "Checking chip...", STYLE_NORMAL);
+}
+
 void DrawBounds(){
     uint8_t slot_under_title = 10; 
     //Horizontal Bounds
@@ -73,18 +81,16 @@ void DrawBounds(){
 }
 
 void LockScreen(){
-      //ssd1306_drawLine(0,Display_Slots[2], ssd1306_displayWidth() -1, Display_Slots[2]);
+      ssd1306_clearScreen();
       ssd1306_printFixed(46, Display_Slots[2], "Locked", STYLE_BOLD);
       ssd1306_printFixed(32, Display_Slots[3], "Insert PIN", STYLE_NORMAL);
 
-      ssd1306_printFixed(46, Display_Slots[5], "*", STYLE_NORMAL);
-      ssd1306_printFixed(54, Display_Slots[5], "*", STYLE_NORMAL);
-      ssd1306_printFixed(62, Display_Slots[5], "*", STYLE_NORMAL);
-      ssd1306_printFixed(70, Display_Slots[5], "*", STYLE_NORMAL);
-      ssd1306_printFixed(78, Display_Slots[5], "*", STYLE_NORMAL);
+      //ssd1306_printFixed(46, Display_Slots[5], "*", STYLE_NORMAL);
+      //ssd1306_printFixed(54, Display_Slots[5], "*", STYLE_NORMAL);
+      //ssd1306_printFixed(62, Display_Slots[5], "*", STYLE_NORMAL);
+      //ssd1306_printFixed(70, Display_Slots[5], "*", STYLE_NORMAL);
+      //ssd1306_printFixed(78, Display_Slots[5], "*", STYLE_NORMAL);
 }
-
-
 
 void loop() {
   
@@ -128,6 +134,7 @@ void loop() {
   //CHIP ALREADY USED
   if(state == 2){
     if(!displayed){
+      LockScreen();
       displayed = 1;
     }
     ReadInput();
@@ -135,38 +142,49 @@ void loop() {
       if(pin_ok()){
         state = 3;
       }else{
-        //Show Slots
+        ClearSlot(5);
+        ssd1306_printFixed(32, Display_Slots[5], "WRONG PING!", STYLE_NORMAL);
+        delay(2000);
       }
       Digits_in_display = 0;
       displayed = 0;
     }
   } //*****************
 
-  //Error state
+  //OK state
   if(state == 3){
     if(!displayed){
       displayed = 1;
-    }
-
-    //Debug Mode Reset State
-    if(!digitalRead(A0) && !digitalRead(A1)){
-      state = 1;
-      displayed = 0;
-    }
-      
+    }  
   }
   //********************
 
   //Checking chip status
   if(!CheckChip(0x00)){
     if(displayed < 2){
+      ShowChipError();
       displayed = 2;
     }
+    state = 99;
     Digits_in_display = 0;
   }else if(displayed == 2){
+      ClearSlot(3);
+      ClearSlot(7);
+      ssd1306_printFixed(40, Display_Slots[3], "CHIP OK!", STYLE_BOLD);
+      delay(3000);
+      state = 2;
       displayed = 0;
   }
   //*****************
+  // Debug Mode Reset State
+    if(!digitalRead(A0) && !digitalRead(A1)){
+      header = 0xFF;
+      //displayed = 0;
+    }
+    if(!digitalRead(A2) && !digitalRead(A3)){
+      header = 0x00;
+      //displayed = 0;
+    }
 }
 
 
@@ -188,34 +206,40 @@ void ReadInput(){
   if(Digits_in_display < 5){
     if(!digitalRead(A0)){
       input_pin[Digits_in_display] = 0x00;
+      ssd1306_printFixed(46 + (Digits_in_display*8), Display_Slots[5], "*", STYLE_NORMAL);
       Digits_in_display++;
+      delay(300);
     }
     if(!digitalRead(A1)){
       input_pin[Digits_in_display] = 0x01;
+      ssd1306_printFixed(46 + (Digits_in_display*8), Display_Slots[5], "*", STYLE_NORMAL);
       Digits_in_display++;
+      delay(300);
     }
     if(!digitalRead(A2)){
       input_pin[Digits_in_display] = 0x02;
+      ssd1306_printFixed(46 + (Digits_in_display*8), Display_Slots[5], "*", STYLE_NORMAL);
       Digits_in_display++;
+      delay(300);
     }
     if(!digitalRead(A3)){
       input_pin[Digits_in_display] = 0x03;
+      ssd1306_printFixed(46 + (Digits_in_display*8), Display_Slots[5], "*", STYLE_NORMAL);
       Digits_in_display++;
+      delay(300);
     }
   }
 }
 
 byte CheckChip(byte print){
   if(!ChipError()){
-      //Serial.println("EEPROM Connected!");
       if(print){
         //Chip OK!
       }
       return 1;
     }else{
-      //Serial.println("EEPROM ERROR");
       if(print){
-        //Error on CHIP
+        //Error on CHIP return 0
       }
       return 0;
     }
@@ -223,7 +247,8 @@ byte CheckChip(byte print){
 
 byte ChipError(){
   Wire.beginTransmission(I2C_ADDRESS);
-  return Wire.endTransmission();
+  //return Wire.endTransmission();
+  return header;
 }
 /*
 void systemOut(uint8_t i){
